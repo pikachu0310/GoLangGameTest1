@@ -1,24 +1,23 @@
-package main
+package examples
 
 import (
 	"bytes"
 	"fmt"
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/pikachu0310/GoLangGameTest1.git/examples"
 	"image"
 	_ "image/png"
 	"log"
 	"math"
 	"math/rand"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 const (
-	screenWidth  = 320
-	screenHeight = 240
-	maxAngle     = 256
+	screenWidthSprites  = 320
+	screenHeightSprites = 240
+	maxAngleSprites     = 256
 )
 
 var (
@@ -57,19 +56,19 @@ func (s *Sprite) Update() {
 	if s.x < 0 {
 		s.x = -s.x
 		s.vx = -s.vx
-	} else if mx := screenWidth - s.imageWidth; mx <= s.x {
+	} else if mx := screenWidthSprites - s.imageWidth; mx <= s.x {
 		s.x = 2*mx - s.x
 		s.vx = -s.vx
 	}
 	if s.y < 0 {
 		s.y = -s.y
 		s.vy = -s.vy
-	} else if my := screenHeight - s.imageHeight; my <= s.y {
+	} else if my := screenHeightSprites - s.imageHeight; my <= s.y {
 		s.y = 2*my - s.y
 		s.vy = -s.vy
 	}
 	s.angle++
-	if s.angle == maxAngle {
+	if s.angle == maxAngleSprites {
 		s.angle = 0
 	}
 }
@@ -90,14 +89,14 @@ const (
 	MaxSprites = 50000
 )
 
-type Game struct {
+type SpritesGame struct {
 	touchIDs []ebiten.TouchID
 	sprites  Sprites
 	op       ebiten.DrawImageOptions
 	inited   bool
 }
 
-func (g *Game) init() {
+func (g *SpritesGame) init() {
 	defer func() {
 		g.inited = true
 	}()
@@ -106,9 +105,9 @@ func (g *Game) init() {
 	g.sprites.num = 500
 	for i := range g.sprites.sprites {
 		w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
-		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
+		x, y := rand.Intn(screenWidthSprites-w), rand.Intn(screenHeightSprites-h)
 		vx, vy := 2*rand.Intn(2)-1, 2*rand.Intn(2)-1
-		a := rand.Intn(maxAngle)
+		a := rand.Intn(maxAngleSprites)
 		g.sprites.sprites[i] = &Sprite{
 			imageWidth:  w,
 			imageHeight: h,
@@ -121,27 +120,27 @@ func (g *Game) init() {
 	}
 }
 
-func (g *Game) leftTouched() bool {
+func (g *SpritesGame) leftTouched() bool {
 	for _, id := range g.touchIDs {
 		x, _ := ebiten.TouchPosition(id)
-		if x < screenWidth/2 {
+		if x < screenWidthSprites/2 {
 			return true
 		}
 	}
 	return false
 }
 
-func (g *Game) rightTouched() bool {
+func (g *SpritesGame) rightTouched() bool {
 	for _, id := range g.touchIDs {
 		x, _ := ebiten.TouchPosition(id)
-		if x >= screenWidth/2 {
+		if x >= screenWidthSprites/2 {
 			return true
 		}
 	}
 	return false
 }
 
-func (g *Game) Update() error {
+func (g *SpritesGame) Update() error {
 	if !g.inited {
 		g.init()
 	}
@@ -167,7 +166,7 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
+func (g *SpritesGame) Draw(screen *ebiten.Image) {
 	// Draw each sprite.
 	// DrawImage can be called many many times, but in the implementation,
 	// the actual draw call to GPU is very few since these calls satisfy
@@ -179,7 +178,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		s := g.sprites.sprites[i]
 		g.op.GeoM.Reset()
 		g.op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-		g.op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
+		g.op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngleSprites)
 		g.op.GeoM.Translate(float64(w)/2, float64(h)/2)
 		g.op.GeoM.Translate(float64(s.x), float64(s.y))
 		screen.DrawImage(ebitenImage, &g.op)
@@ -191,16 +190,15 @@ Press <- or -> to change the number of sprites`, ebiten.ActualTPS(), ebiten.Actu
 	ebitenutil.DebugPrint(screen, msg)
 }
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return screenWidth, screenHeight
+func (g *SpritesGame) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidthSprites, screenHeightSprites
 }
 
-func main() {
-	//ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	//ebiten.SetWindowTitle("Sprites (Ebitengine Demo)")
-	//ebiten.SetWindowResizable(true)
-	//if err := ebiten.RunGame(&Game{}); err != nil {
-	//	log.Fatal(err)
-	//}
-	examples.ExampleFont()
+func ExampleSprites() {
+	ebiten.SetWindowSize(screenWidthSprites*2, screenHeightSprites*2)
+	ebiten.SetWindowTitle("Sprites (Ebitengine Demo)")
+	ebiten.SetWindowResizable(true)
+	if err := ebiten.RunGame(&SpritesGame{}); err != nil {
+		log.Fatal(err)
+	}
 }
