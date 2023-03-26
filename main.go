@@ -1,21 +1,8 @@
-// Copyright 2017 The Ebiten Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
 	"bytes"
+	"github.com/pikachu0310/GoLangGameTest1.git/myimages"
 	"image"
 	"image/color"
 	_ "image/png"
@@ -40,6 +27,7 @@ var (
 	uiImage       *ebiten.Image
 	uiFont        font.Face
 	uiFontMHeight int
+	slimeImage    *ebiten.Image
 )
 
 func init() {
@@ -64,6 +52,12 @@ func init() {
 	}
 	b, _, _ := uiFont.GlyphBounds('M')
 	uiFontMHeight = (b.Max.Y - b.Min.Y).Ceil()
+
+	img, _, err = image.Decode(bytes.NewReader(myimages.Slime_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	slimeImage = ebiten.NewImageFromImage(img)
 }
 
 type imageType int
@@ -91,8 +85,8 @@ var imageSrcRects = map[imageType]image.Rectangle{
 }
 
 const (
-	screenWidth  = 640
-	screenHeight = 480
+	screenWidth  = 1280
+	screenHeight = 720
 )
 
 type Input struct {
@@ -441,9 +435,11 @@ type Game struct {
 	button2    *Button
 	checkBox   *CheckBox
 	textBoxLog *TextBox
+	items      []*Button
+	slime      *Button
 }
 
-func StartUI() *Game {
+func GameMain() *Game {
 	g := &Game{}
 	g.button1 = &Button{
 		Rect: image.Rect(16, 16, 144, 48),
@@ -460,6 +456,9 @@ func StartUI() *Game {
 	}
 	g.textBoxLog = &TextBox{
 		Rect: image.Rect(16, 96, 624, 464),
+	}
+	g.slime = &Button{
+		Rect: image.Rect(16, 480, 144, 512),
 	}
 
 	g.button1.SetOnPressed(func(b *Button) {
@@ -502,8 +501,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("UI (Ebitengine Demo)")
-	if err := ebiten.RunGame(StartUI()); err != nil {
+	ebiten.SetWindowTitle("合成変幻")
+	if err := ebiten.RunGame(GameMain()); err != nil {
 		log.Fatal(err)
 	}
 }

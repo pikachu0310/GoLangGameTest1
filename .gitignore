@@ -1,2 +1,4 @@
 /ebiten
 /.idea
+/exe
+.env
