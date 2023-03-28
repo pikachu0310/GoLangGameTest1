@@ -20,7 +20,6 @@ import (
 	"image"
 	_ "image/png"
 	"log"
-	"math"
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -187,13 +186,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// some conditions e.g. all the rendering sources and targets are same.
 	// For more detail, see:
 	// https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
-	w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
+	//w, h := ebitenImage.Bounds().Dx(), ebitenImage.Bounds().Dy()
 	for i := 0; i < g.sprites.num; i++ {
 		s := g.sprites.sprites[i]
 		g.op.GeoM.Reset()
-		g.op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-		g.op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
-		g.op.GeoM.Translate(float64(w)/2, float64(h)/2)
+		//g.op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+		//g.op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
+		//g.op.GeoM.Translate(float64(w)/2, float64(h)/2)
 		g.op.GeoM.Translate(float64(s.x), float64(s.y))
 		screen.DrawImage(ebitenImage, &g.op)
 	}

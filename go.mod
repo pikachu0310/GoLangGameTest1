@@ -6,6 +6,7 @@ require (
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.3
 	github.com/hajimehoshi/ebiten/v2 v2.5.0
 	github.com/jakecoffman/cp v1.2.1
+	github.com/joho/godotenv v1.5.1
 	golang.org/x/image v0.6.0
 )
 
