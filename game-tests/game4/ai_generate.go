@@ -38,36 +38,6 @@ func addRequestContent(role string, content string) {
 	requestContent = append(requestContent, message)
 }
 
-//func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-//	if m.Author.ID == s.State.User.ID {
-//		return
-//	}
-//
-//	fmt.Printf("Message: %s, Author: %s", m.Message.Content, m.Author.Username)
-//
-//	if m.Message.Content == "ping" {
-//		s.ChannelMessageSend(m.ChannelID, "pong")
-//	}
-//
-//	if strings.Contains(m.Message.Content, "/gpt") {
-//		msg, err := s.ChannelMessageSend(m.ChannelID, ":thinking:")
-//		if err != nil {
-//			fmt.Println(err)
-//			return
-//		}
-//		EditMessage := func(content string) {
-//			s.ChannelMessageEdit(m.ChannelID, msg.ID, content)
-//		}
-//		if strings.Contains(m.Message.Content, "/gpt reset") || strings.Contains(m.Message.Content, "/gpt new") {
-//			GptReset(EditMessage)
-//		} else if strings.Contains(m.Message.Content, "/gpt debug") || strings.Contains(m.Message.Content, "/gptdebug") {
-//			GptDebug(EditMessage)
-//		} else {
-//			Gpt(regexp.MustCompile("/gpt").ReplaceAllString(m.Message.Content, ""), EditMessage)
-//		}
-//	}
-//}
-
 func ReturnString(str string) string {
 	return str
 }

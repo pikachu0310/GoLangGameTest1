@@ -117,10 +117,6 @@ func init() {
 	}
 	uiImage = ebiten.NewImageFromImage(img)
 
-	//tt, err := opentype.Parse(goregular.TTF)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
@@ -135,32 +131,6 @@ func init() {
 	}
 	b, _, _ := uiFont.GlyphBounds('M')
 	uiFontMHeight = (b.Max.Y - b.Min.Y).Ceil()
-
-	//tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//const dpi = 72
-	//mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-	//	Size:    24,
-	//	DPI:     dpi,
-	//	Hinting: font.HintingVertical,
-	//})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//mplusBigFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-	//	Size:    48,
-	//	DPI:     dpi,
-	//	Hinting: font.HintingFull, // Use quantization to save glyph cache images.
-	//})
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//// Adjust the line height.
-	//mplusBigFont = text.FaceWithLineHeight(mplusBigFont, 54)
 
 	//img, _, err = image.Decode(bytes.NewReader(myimages.Slime_png))
 	//if err != nil {
@@ -540,25 +510,27 @@ func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
 }
 
 type Game struct {
-	button1    *Button
-	button2    *Button
-	checkBox   *CheckBox
-	textBoxLog *TextBox
-	items      []*Button
-	slime      *Button
-	Player     Player
-	Enemy      Enemy
-	GameState  GameState
+	button1     *Button
+	button2     *Button
+	checkBox    *CheckBox
+	textBoxLog  *TextBox
+	items       []*Item
+	itemButtons []*Button
+	slime       *Button
+	Player      Player
+	Enemy       Enemy
+	GameState   GameState
 }
 
 func GameMain() *Game {
 	g := &Game{}
 	g.button1 = &Button{
-		Rect: image.Rect(16, 16, 144, 48),
-		Text: "Button 1",
+		//Rect: image.Rect(16, 16, 144, 48),
+		Rect: image.Rect(16*40, 16*2, 16*48, 16*6),
+		Text: "Item Generate",
 	}
 	g.button2 = &Button{
-		Rect: image.Rect(160, 16, 288, 48),
+		Rect: image.Rect(16*40, 16*7, 16*48, 16*11),
 		Text: "Button 2",
 	}
 	g.checkBox = &CheckBox{
@@ -575,8 +547,16 @@ func GameMain() *Game {
 
 	g.button1.SetOnPressed(func(b *Button) {
 		item := generateItem()
-		//g.items = append(g.items, *item)
-		g.textBoxLog.AppendLine(fmt.Sprintf("Item:%+v\n", item))
+		g.items = append(g.items, item)
+		fmt.Println(item.Name)
+		newButton := &Button{
+			Rect: image.Rect(16*50, 16*(2+3*(len(g.itemButtons))), 16*64, 16*(4+3*(len(g.itemButtons)))),
+			Text: item.Name,
+		}
+		newButton.SetOnPressed(func(b *Button) {
+			g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\n InstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
+		})
+		g.itemButtons = append(g.itemButtons, newButton)
 	})
 	g.button2.SetOnPressed(func(b *Button) {
 		g.textBoxLog.AppendLine("Button 2 Pressed")
@@ -596,6 +576,9 @@ func GameMain() *Game {
 func (g *Game) Update() error {
 	g.button1.Update()
 	g.button2.Update()
+	for _, button := range g.itemButtons {
+		button.Update()
+	}
 	g.checkBox.Update()
 	g.textBoxLog.Update()
 	return nil
@@ -605,6 +588,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0xeb, 0xeb, 0xeb, 0xff})
 	g.button1.Draw(screen)
 	g.button2.Draw(screen)
+	for _, button := range g.itemButtons {
+		button.Draw(screen)
+	}
 	g.checkBox.Draw(screen)
 	g.textBoxLog.Draw(screen)
 }
