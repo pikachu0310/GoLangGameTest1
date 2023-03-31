@@ -55,6 +55,7 @@ type Item struct {
 	SustainedHeal int
 	Attack        int
 	Defense       int
+	Description   string
 	*Button
 	*CheckBox
 }
@@ -79,39 +80,8 @@ func combineItem(items []*Item) *Item {
 	return item
 }
 
-//func combineItems(item1, item2 Item) Item {
-//	gpt3 := openai.GetGpt3Model()
-//	itemName, _ := gpt3.GenerateText()
-//	item := Item{
-//		Name:      itemName,
-//		Category:  "Consumable",
-//		MaxHP:     (item1.MaxHP + item2.MaxHP) / 2,
-//		HPRecover: (item1.HPRecover + item2.HPRecover) / 2,
-//		Attack:    (item1.Attack + item2.Attack) / 2,
-//		Defense:   (item1.Defense + item2.Defense) / 2,
-//	}
-//	if rand.Float64() < 0.1 {
-//		item.Category = "Weapon"
-//		item.Attack += rand.Intn(5) + 1
-//	} else if rand.Float64() < 0.1 {
-//		item.Category = "Armor"
-//		item.Defense += rand.Intn(5) + 1
-//	}
-//	return item
-//}
-
-//func (g *Game) Update() error {
-//	g.GameState = Playing
-//
-//	switch g.GameState {
-//	case Playing:
-//
-//	}
-//	return nil
-//}
-
 const (
-	lineHeight = 16
+	lineHeight = 24 //16
 )
 
 var (
@@ -135,7 +105,7 @@ func init() {
 	}
 	uiFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12,
-		DPI:     72,
+		DPI:     144,
 		Hinting: font.HintingVertical,
 	})
 	if err != nil {
@@ -550,6 +520,16 @@ func (g *Game) AddItem(item *Item) {
 	FormatItemsGUI(g.items)
 }
 
+func getCheckedItems(items []*Item) []*Item {
+	var checkedItems []*Item
+	for i := 0; i < len(items); i++ {
+		if items[i].CheckBox.Checked() {
+			checkedItems = append(checkedItems, items[i])
+		}
+	}
+	return checkedItems
+}
+
 // My Func End
 
 type Game struct {
@@ -569,11 +549,11 @@ func GameMain() *Game {
 	g.button1 = &Button{
 		//Rect: image.Rect(16, 16, 144, 48),
 		Rect: image.Rect(16*40, 16*2, 16*48, 16*6),
-		Text: "Item Generate",
+		Text: "Generate",
 	}
 	g.button2 = &Button{
 		Rect: image.Rect(16*40, 16*7, 16*48, 16*11),
-		Text: "Item Combine",
+		Text: "Combine",
 	}
 	g.checkBox = &CheckBox{
 		X:    16,
@@ -592,7 +572,7 @@ func GameMain() *Game {
 		g.AddItem(item)
 	})
 	g.button2.SetOnPressed(func(b *Button) {
-		item := combineItem(g.items)
+		item := combineItem(getCheckedItems(g.items))
 		g.AddItem(item)
 	})
 	g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
