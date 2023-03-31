@@ -520,6 +520,22 @@ func (g *Game) AddItem(item *Item) {
 	FormatItemsGUI(g.items)
 }
 
+func (g *Game) DeleteItem(item *Item) {
+	for i := 0; i < len(g.items); i++ {
+		if g.items[i] == item {
+			g.items = append(g.items[:i], g.items[i+1:]...)
+			break
+		}
+	}
+	FormatItemsGUI(g.items)
+}
+
+func (g *Game) DeleteItems(items []*Item) {
+	for i := 0; i < len(items); i++ {
+		g.DeleteItem(items[i])
+	}
+}
+
 func getCheckedItems(items []*Item) []*Item {
 	var checkedItems []*Item
 	for i := 0; i < len(items); i++ {
@@ -573,6 +589,7 @@ func GameMain() *Game {
 	})
 	g.button2.SetOnPressed(func(b *Button) {
 		item := combineItem(getCheckedItems(g.items))
+		g.DeleteItems(getCheckedItems(g.items))
 		g.AddItem(item)
 	})
 	g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
