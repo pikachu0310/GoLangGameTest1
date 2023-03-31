@@ -2,12 +2,12 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/pikachu0310/GoLangGameTest1.git/myimages"
 	"image"
 	_ "image/png"
 	"log"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type GameState int
@@ -34,13 +34,10 @@ type Player struct {
 	DaysLeft  int
 }
 
-type Item struct {
-	Name      string
-	Category  string
-	MaxHP     int
-	HPRecover int
-	Attack    int
-	Defense   int
+type Game struct {
+	Player    Player
+	Enemy     Enemy
+	GameState GameState
 }
 
 type Enemy struct {
@@ -51,58 +48,46 @@ type Enemy struct {
 
 var img *ebiten.Image
 
-func generateEnemy() Enemy {
-	gpt3 := openai.GetGpt3Model()
-	enemyName, _ := gpt3.GenerateText()
-	enemy := Enemy{
-		Name:   enemyName,
-		HP:     rand.Intn(10) + 1,
-		Attack: rand.Intn(3) + 1,
-	}
-	return enemy
+type Item struct {
+	Name          string
+	Category      string
+	MaxHp         int
+	InstantHeal   int
+	SustainedHeal int
+	Attack        int
+	Defense       int
 }
 
-func generateItem() Item {
-	gpt3 := openai.GetGpt3Model()
-	itemName, _ := gpt3.GenerateText()
-	item := Item{
-		Name:      itemName,
-		Category:  "Consumable",
-		MaxHP:     rand.Intn(5) - 5,
-		HPRecover: rand.Intn(5) - 5,
-		Attack:    rand.Intn(5) - 5,
-		Defense:   rand.Intn(5) - 5,
-	}
-	if rand.Float64() < 0.1 {
-		item.Category = "Weapon"
-		item.Attack += rand.Intn(5) + 1
-	} else if rand.Float64() < 0.1 {
-		item.Category = "Armor"
-		item.Defense += rand.Intn(5) + 1
+func generateItem() *Item {
+	item, err := GptGenerateItem()
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Printf("Item:%+v\n", item)
 	}
 	return item
 }
 
-func combineItems(item1, item2 Item) Item {
-	gpt3 := openai.GetGpt3Model()
-	itemName, _ := gpt3.GenerateText()
-	item := Item{
-		Name:      itemName,
-		Category:  "Consumable",
-		MaxHP:     (item1.MaxHP + item2.MaxHP) / 2,
-		HPRecover: (item1.HPRecover + item2.HPRecover) / 2,
-		Attack:    (item1.Attack + item2.Attack) / 2,
-		Defense:   (item1.Defense + item2.Defense) / 2,
-	}
-	if rand.Float64() < 0.1 {
-		item.Category = "Weapon"
-		item.Attack += rand.Intn(5) + 1
-	} else if rand.Float64() < 0.1 {
-		item.Category = "Armor"
-		item.Defense += rand.Intn(5) + 1
-	}
-	return item
-}
+//func combineItems(item1, item2 Item) Item {
+//	gpt3 := openai.GetGpt3Model()
+//	itemName, _ := gpt3.GenerateText()
+//	item := Item{
+//		Name:      itemName,
+//		Category:  "Consumable",
+//		MaxHP:     (item1.MaxHP + item2.MaxHP) / 2,
+//		HPRecover: (item1.HPRecover + item2.HPRecover) / 2,
+//		Attack:    (item1.Attack + item2.Attack) / 2,
+//		Defense:   (item1.Defense + item2.Defense) / 2,
+//	}
+//	if rand.Float64() < 0.1 {
+//		item.Category = "Weapon"
+//		item.Attack += rand.Intn(5) + 1
+//	} else if rand.Float64() < 0.1 {
+//		item.Category = "Armor"
+//		item.Defense += rand.Intn(5) + 1
+//	}
+//	return item
+//}
 
 func init() {
 	var err error
@@ -113,12 +98,10 @@ func init() {
 	img = ebiten.NewImageFromImage(imga)
 }
 
-type Game struct{}
-
 func (g *Game) Update() error {
-	var gameState GameState = Playing
+	g.GameState = Playing
 
-	switch gameState {
+	switch g.GameState {
 	case Playing:
 
 	}
