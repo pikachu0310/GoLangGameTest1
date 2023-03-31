@@ -525,6 +525,17 @@ func FormatItemButtons(buttons []*Button) {
 		buttons[i].Rect = image.Rect(16*50, 16*(2+3*(i)), 16*64, 16*(4+3*(i)))
 	}
 }
+func (g *Game) AddItem(item *Item) {
+	g.items = append(g.items, item)
+	newButton := &Button{
+		Text: item.Name,
+	}
+	newButton.SetOnPressed(func(b *Button) {
+		g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\n InstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
+	})
+	g.itemButtons = append(g.itemButtons, newButton)
+	FormatItemButtons(g.itemButtons)
+}
 
 // My Func End
 
@@ -566,27 +577,11 @@ func GameMain() *Game {
 
 	g.button1.SetOnPressed(func(b *Button) {
 		item := generateItem()
-		g.items = append(g.items, item)
-		newButton := &Button{
-			Text: item.Name,
-		}
-		newButton.SetOnPressed(func(b *Button) {
-			g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\n InstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
-		})
-		g.itemButtons = append(g.itemButtons, newButton)
-		FormatItemButtons(g.itemButtons)
+		g.AddItem(item)
 	})
 	g.button2.SetOnPressed(func(b *Button) {
 		item := combineItem(g.items)
-		g.items = append(g.items, item)
-		newButton := &Button{
-			Text: item.Name,
-		}
-		newButton.SetOnPressed(func(b *Button) {
-			g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\n InstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
-		})
-		g.itemButtons = append(g.itemButtons, newButton)
-		FormatItemButtons(g.itemButtons)
+		g.AddItem(item)
 	})
 	g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
 		msg := "Check box check changed"
