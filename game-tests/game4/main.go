@@ -500,6 +500,10 @@ func FormatItemsGUI(items []*Item) {
 	}
 }
 
+func itemStringer(item *Item) string {
+	return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: %s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, item.Description)
+}
+
 func (g *Game) AddItem(item *Item) {
 	g.items = append(g.items, item)
 
@@ -507,7 +511,7 @@ func (g *Game) AddItem(item *Item) {
 		Text: item.Name,
 	}
 	item.Button.SetOnPressed(func(b *Button) {
-		g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
+		g.textBoxLog.Text = itemStringer(item)
 	})
 
 	item.CheckBox = &CheckBox{
