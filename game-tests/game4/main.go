@@ -55,6 +55,8 @@ type Item struct {
 	SustainedHeal int
 	Attack        int
 	Defense       int
+	*Button
+	*CheckBox
 }
 
 func generateItem() *Item {
@@ -520,36 +522,46 @@ func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
 }
 
 // My Func Start
-func FormatItemButtons(buttons []*Button) {
-	for i := 0; i < len(buttons); i++ {
-		buttons[i].Rect = image.Rect(16*50, 16*(2+3*(i)), 16*64, 16*(4+3*(i)))
+func FormatItemsGUI(items []*Item) {
+	for i := 0; i < len(items); i++ {
+		items[i].Button.Rect = image.Rect(16*50, 16*(2+3*(i)), 16*64, 16*(4+3*(i)))
+		items[i].CheckBox.X = 16 * 49
+		items[i].CheckBox.Y = 16*(2+3*(i)) + 8
 	}
 }
+
 func (g *Game) AddItem(item *Item) {
 	g.items = append(g.items, item)
-	newButton := &Button{
+
+	item.Button = &Button{
 		Text: item.Name,
 	}
-	newButton.SetOnPressed(func(b *Button) {
-		g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\n InstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
+	item.Button.SetOnPressed(func(b *Button) {
+		g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
 	})
-	g.itemButtons = append(g.itemButtons, newButton)
-	FormatItemButtons(g.itemButtons)
+
+	item.CheckBox = &CheckBox{
+		Text: "",
+	}
+	item.CheckBox.SetOnCheckChanged(func(c *CheckBox) {
+		fmt.Println("CheckBox is checked:", c.Checked())
+	})
+
+	FormatItemsGUI(g.items)
 }
 
 // My Func End
 
 type Game struct {
-	button1     *Button
-	button2     *Button
-	checkBox    *CheckBox
-	textBoxLog  *TextBox
-	items       []*Item
-	itemButtons []*Button
-	slime       *Button
-	Player      Player
-	Enemy       Enemy
-	GameState   GameState
+	button1    *Button
+	button2    *Button
+	checkBox   *CheckBox
+	textBoxLog *TextBox
+	items      []*Item
+	slime      *Button
+	Player     Player
+	Enemy      Enemy
+	GameState  GameState
 }
 
 func GameMain() *Game {
@@ -598,8 +610,9 @@ func GameMain() *Game {
 func (g *Game) Update() error {
 	g.button1.Update()
 	g.button2.Update()
-	for _, button := range g.itemButtons {
-		button.Update()
+	for _, item := range g.items {
+		item.Button.Update()
+		item.CheckBox.Update()
 	}
 	g.checkBox.Update()
 	g.textBoxLog.Update()
@@ -610,8 +623,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0xeb, 0xeb, 0xeb, 0xff})
 	g.button1.Draw(screen)
 	g.button2.Draw(screen)
-	for _, button := range g.itemButtons {
-		button.Draw(screen)
+	for _, item := range g.items {
+		item.Button.Draw(screen)
+		item.CheckBox.Draw(screen)
 	}
 	g.checkBox.Draw(screen)
 	g.textBoxLog.Draw(screen)
@@ -623,7 +637,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("合成変幻")
+	ebiten.SetWindowTitle("変幻自在")
 	if err := ebiten.RunGame(GameMain()); err != nil {
 		log.Fatal(err)
 	}
