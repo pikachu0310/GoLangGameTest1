@@ -59,11 +59,11 @@ func parseItem(s string) (*Item, error) {
 		}
 	}
 	if index == len(lines) {
-		return nil, fmt.Errorf("Invalid input format")
+		return nil, fmt.Errorf("Invalid input format1" + s)
 	}
 	index += 1
 	if index+8 >= len(lines) {
-		return nil, fmt.Errorf("Invalid input format")
+		return nil, fmt.Errorf("Invalid input format2" + s)
 	}
 
 	maxHp, err := strconv.Atoi(lines[index+2])

@@ -81,7 +81,7 @@ func combineItem(items []*Item) *Item {
 }
 
 const (
-	lineHeight = 24 //16
+	lineHeight = 16 //16
 )
 
 var (
@@ -105,7 +105,7 @@ func init() {
 	}
 	uiFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12,
-		DPI:     144,
+		DPI:     72,
 		Hinting: font.HintingVertical,
 	})
 	if err != nil {
@@ -495,7 +495,7 @@ func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
 func FormatItemsGUI(items []*Item) {
 	for i := 0; i < len(items); i++ {
 		items[i].Button.Rect = image.Rect(16*50, 16*(2+3*(i)), 16*64, 16*(4+3*(i)))
-		items[i].CheckBox.X = 16 * 49
+		items[i].CheckBox.X = 16*48 + 12
 		items[i].CheckBox.Y = 16*(2+3*(i)) + 8
 	}
 }
@@ -505,6 +505,10 @@ func itemStringer(item *Item) string {
 }
 
 func (g *Game) AddItem(item *Item) {
+	if item == nil {
+		fmt.Println("item is nil")
+		return
+	}
 	g.items = append(g.items, item)
 
 	item.Button = &Button{
@@ -589,10 +593,18 @@ func GameMain() *Game {
 
 	g.button1.SetOnPressed(func(b *Button) {
 		item := generateItem()
+		if item == nil {
+			fmt.Println("item is nil")
+			return
+		}
 		g.AddItem(item)
 	})
 	g.button2.SetOnPressed(func(b *Button) {
 		item := combineItem(getCheckedItems(g.items))
+		if item == nil {
+			fmt.Println("item is nil")
+			return
+		}
 		g.DeleteItems(getCheckedItems(g.items))
 		g.AddItem(item)
 	})
