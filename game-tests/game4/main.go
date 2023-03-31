@@ -67,6 +67,16 @@ func generateItem() *Item {
 	return item
 }
 
+func combineItem(items []*Item) *Item {
+	item, err := GptCombineItem(items)
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Printf("Item:%+v\n", item)
+	}
+	return item
+}
+
 //func combineItems(item1, item2 Item) Item {
 //	gpt3 := openai.GetGpt3Model()
 //	itemName, _ := gpt3.GenerateText()
@@ -509,6 +519,15 @@ func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
 	c.onCheckChanged = f
 }
 
+// My Func Start
+func FormatItemButtons(buttons []*Button) {
+	for i := 0; i < len(buttons); i++ {
+		buttons[i].Rect = image.Rect(16*50, 16*(2+3*(i)), 16*64, 16*(4+3*(i)))
+	}
+}
+
+// My Func End
+
 type Game struct {
 	button1     *Button
 	button2     *Button
@@ -531,7 +550,7 @@ func GameMain() *Game {
 	}
 	g.button2 = &Button{
 		Rect: image.Rect(16*40, 16*7, 16*48, 16*11),
-		Text: "Button 2",
+		Text: "Item Combine",
 	}
 	g.checkBox = &CheckBox{
 		X:    16,
@@ -548,18 +567,26 @@ func GameMain() *Game {
 	g.button1.SetOnPressed(func(b *Button) {
 		item := generateItem()
 		g.items = append(g.items, item)
-		fmt.Println(item.Name)
 		newButton := &Button{
-			Rect: image.Rect(16*50, 16*(2+3*(len(g.itemButtons))), 16*64, 16*(4+3*(len(g.itemButtons)))),
 			Text: item.Name,
 		}
 		newButton.SetOnPressed(func(b *Button) {
 			g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\n InstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
 		})
 		g.itemButtons = append(g.itemButtons, newButton)
+		FormatItemButtons(g.itemButtons)
 	})
 	g.button2.SetOnPressed(func(b *Button) {
-		g.textBoxLog.AppendLine("Button 2 Pressed")
+		item := combineItem(g.items)
+		g.items = append(g.items, item)
+		newButton := &Button{
+			Text: item.Name,
+		}
+		newButton.SetOnPressed(func(b *Button) {
+			g.textBoxLog.Text = fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\n InstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense)
+		})
+		g.itemButtons = append(g.itemButtons, newButton)
+		FormatItemButtons(g.itemButtons)
 	})
 	g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
 		msg := "Check box check changed"
