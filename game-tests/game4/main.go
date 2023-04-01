@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/gob"
 	"fmt"
 	ebiten "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
@@ -14,6 +16,7 @@ import (
 	"image/color"
 	_ "image/png"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -501,7 +504,7 @@ func FormatItemsGUI(items []*Item) {
 }
 
 func itemStringer(item *Item) string {
-	return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: %s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, item.Description)
+	return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 60))
 }
 
 func (g *Game) AddItem(item *Item) {
@@ -544,6 +547,13 @@ func (g *Game) DeleteItems(items []*Item) {
 	}
 }
 
+func (g *Game) ResetItems(items []*Item) {
+	g.items = []*Item{}
+	for i := 0; i < len(items); i++ {
+		g.AddItem(items[i])
+	}
+}
+
 func getCheckedItems(items []*Item) []*Item {
 	var checkedItems []*Item
 	for i := 0; i < len(items); i++ {
@@ -554,11 +564,98 @@ func getCheckedItems(items []*Item) []*Item {
 	return checkedItems
 }
 
+func addNewline(s string, interval int) string {
+	var result strings.Builder
+	for i, c := range s {
+		if i > 0 && i%interval == 0 {
+			result.WriteString("\n")
+		}
+		result.WriteRune(c)
+	}
+	return result.String()
+}
+
+func (g *Game) SaveItems() {
+	err := writeToFile(g.items, "SaveDataAuto.gob")
+	if err == nil {
+		fmt.Println(err)
+	}
+}
+
+func (g *Game) LoadItems() {
+	items, err := readFromFile("SaveDataAuto.gob")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	g.ResetItems(items)
+}
+
+func (g *Game) SaveItemsManual() {
+	err := writeToFile(g.items, "SaveDataManual.gob")
+	if err == nil {
+		fmt.Println(err)
+	}
+}
+
+func (g *Game) LoadItemsManual() {
+	err := writeToFile(g.items, "SaveDataManual.gob")
+	if err == nil {
+		fmt.Println(err)
+	}
+}
+
+func writeToFile(items []*Item, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	encoder := gob.NewEncoder(writer)
+	if err := encoder.Encode(items); err != nil {
+		return err
+	}
+	return nil
+}
+
+func readFromFile(filePath string) ([]*Item, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+	decoder := gob.NewDecoder(reader)
+
+	var items []*Item
+	if err := decoder.Decode(&items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (g *Game) AddNewButton(x0, y0, x1, y1 int, text string, f func(b *Button)) {
+	newButton := &Button{
+		Rect:      image.Rect(x0, y0, x1, y1),
+		Text:      text,
+		onPressed: f,
+	}
+	g.buttons = append(g.buttons, newButton)
+}
+
 // My Func End
 
 type Game struct {
+	buttons    []*Button
 	button1    *Button
 	button2    *Button
+	button3    *Button
+	button4    *Button
 	checkBox   *CheckBox
 	textBoxLog *TextBox
 	items      []*Item
@@ -570,15 +667,33 @@ type Game struct {
 
 func GameMain() *Game {
 	g := &Game{}
-	g.button1 = &Button{
-		//Rect: image.Rect(16, 16, 144, 48),
-		Rect: image.Rect(16*40, 16*2, 16*48, 16*6),
-		Text: "Generate",
-	}
-	g.button2 = &Button{
-		Rect: image.Rect(16*40, 16*7, 16*48, 16*11),
-		Text: "Combine",
-	}
+	g.LoadItems()
+	g.AddNewButton(16*40, 16*2, 16*48, 16*6, "Generate", func(b *Button) {
+		item := generateItem()
+		if item == nil {
+			fmt.Println("item is nil")
+			return
+		}
+		g.AddItem(item)
+		g.SaveItems()
+	})
+	g.AddNewButton(16*40, 16*7, 16*48, 16*11, "Combine", func(b *Button) {
+		item := combineItem(getCheckedItems(g.items))
+		if item == nil {
+			fmt.Println("item is nil")
+			return
+		}
+		g.DeleteItems(getCheckedItems(g.items))
+		g.AddItem(item)
+		g.SaveItems()
+	})
+	g.AddNewButton(16*2, 16*1, 16*10, 16*5, "Save", func(b *Button) {
+		g.SaveItemsManual()
+	})
+	g.AddNewButton(16*11, 16*1, 16*19, 16*5, "Load", func(b *Button) {
+		g.LoadItemsManual()
+	})
+
 	g.checkBox = &CheckBox{
 		X:    16,
 		Y:    64,
@@ -591,29 +706,14 @@ func GameMain() *Game {
 		Rect: image.Rect(16, 480, 144, 512),
 	}
 
-	g.button1.SetOnPressed(func(b *Button) {
-		item := generateItem()
-		if item == nil {
-			fmt.Println("item is nil")
-			return
-		}
-		g.AddItem(item)
-	})
-	g.button2.SetOnPressed(func(b *Button) {
-		item := combineItem(getCheckedItems(g.items))
-		if item == nil {
-			fmt.Println("item is nil")
-			return
-		}
-		g.DeleteItems(getCheckedItems(g.items))
-		g.AddItem(item)
-	})
 	g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
 		msg := "Check box check changed"
 		if c.Checked() {
 			msg += " (Checked)"
+			g.SaveItems()
 		} else {
 			msg += " (Unchecked)"
+			g.LoadItems()
 		}
 		g.textBoxLog.AppendLine(msg)
 	})
@@ -621,8 +721,9 @@ func GameMain() *Game {
 }
 
 func (g *Game) Update() error {
-	g.button1.Update()
-	g.button2.Update()
+	for _, button := range g.buttons {
+		button.Update()
+	}
 	for _, item := range g.items {
 		item.Button.Update()
 		item.CheckBox.Update()
@@ -634,8 +735,9 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0xeb, 0xeb, 0xeb, 0xff})
-	g.button1.Draw(screen)
-	g.button2.Draw(screen)
+	for _, button := range g.buttons {
+		button.Draw(screen)
+	}
 	for _, item := range g.items {
 		item.Button.Draw(screen)
 		item.CheckBox.Draw(screen)
