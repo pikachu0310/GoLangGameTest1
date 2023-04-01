@@ -83,15 +83,15 @@ func combineItem(items []*Item) *Item {
 	return item
 }
 
-const (
-	lineHeight = 16 //16
-)
-
 var (
 	uiImage       *ebiten.Image
 	uiFont        font.Face
 	uiFontMHeight int
 	slimeImage    *ebiten.Image
+)
+
+const (
+	lineHeight = 16 + 8 //16
 )
 
 func init() {
@@ -108,7 +108,7 @@ func init() {
 	}
 	uiFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    12,
-		DPI:     72,
+		DPI:     72 + 36,
 		Hinting: font.HintingVertical,
 	})
 	if err != nil {
@@ -504,7 +504,8 @@ func FormatItemsGUI(items []*Item) {
 }
 
 func itemStringer(item *Item) string {
-	return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 60))
+	//return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 60))
+	return fmt.Sprintf("アイテム情報\n名前　　: %s\n種類　　: %s\n最大体力: %d\n即時回復: %d\n持続回復: %d\n攻撃力　: %d\n防御力　: %d\n説明文　:%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 25))
 }
 
 func (g *Game) AddItem(item *Item) {
@@ -564,15 +565,16 @@ func getCheckedItems(items []*Item) []*Item {
 	return checkedItems
 }
 
-func addNewline(s string, interval int) string {
-	var result strings.Builder
-	for i, c := range s {
-		if i > 0 && i%interval == 0 {
-			result.WriteString("\n")
+func addNewline(str string, interval int) string {
+	strSlice := strings.Split(str, "")
+	var result string
+	for i, s := range strSlice {
+		if i%interval == 0 && i != 0 {
+			result += "\n　　　　 "
 		}
-		result.WriteRune(c)
+		result += s
 	}
-	return result.String()
+	return result
 }
 
 func (g *Game) SaveItems() {
@@ -687,10 +689,10 @@ func GameMain() *Game {
 		g.AddItem(item)
 		g.SaveItems()
 	})
-	g.AddNewButton(16*2, 16*1, 16*10, 16*5, "Save", func(b *Button) {
+	g.AddNewButton(16*2, 16*1, 16*10, 16*3, "Save", func(b *Button) {
 		g.SaveItemsManual()
 	})
-	g.AddNewButton(16*11, 16*1, 16*19, 16*5, "Load", func(b *Button) {
+	g.AddNewButton(16*11, 16*1, 16*19, 16*3, "Load", func(b *Button) {
 		g.LoadItemsManual()
 	})
 
@@ -700,7 +702,7 @@ func GameMain() *Game {
 		Text: "Check Box!",
 	}
 	g.textBoxLog = &TextBox{
-		Rect: image.Rect(16, 96, 624, 464),
+		Rect: image.Rect(16, 16*4, 624, 464),
 	}
 	g.slime = &Button{
 		Rect: image.Rect(16, 480, 144, 512),
@@ -742,7 +744,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		item.Button.Draw(screen)
 		item.CheckBox.Draw(screen)
 	}
-	g.checkBox.Draw(screen)
+	//g.checkBox.Draw(screen)
 	g.textBoxLog.Draw(screen)
 }
 
