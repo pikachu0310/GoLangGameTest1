@@ -218,11 +218,19 @@ type Button struct {
 	mouseDown bool
 
 	onPressed func(b *Button)
+	onCursor  func(b *Button)
 }
 
 func (b *Button) Update() {
+	x, y := ebiten.CursorPosition()
+	if b.Rect.Min.X <= x && x < b.Rect.Max.X && b.Rect.Min.Y <= y && y < b.Rect.Max.Y {
+		if b.onCursor != nil {
+			b.onCursor(b)
+		}
+	}
+
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
+		// x, y := ebiten.CursorPosition()
 		if b.Rect.Min.X <= x && x < b.Rect.Max.X && b.Rect.Min.Y <= y && y < b.Rect.Max.Y {
 			b.mouseDown = true
 		} else {
@@ -254,6 +262,10 @@ func (b *Button) Draw(dst *ebiten.Image) {
 
 func (b *Button) SetOnPressed(f func(b *Button)) {
 	b.onPressed = f
+}
+
+func (b *Button) SetOnCursor(f func(b *Button)) {
+	b.onCursor = f
 }
 
 const VScrollBarWidth = 16
