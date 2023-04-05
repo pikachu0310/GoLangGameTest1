@@ -10,6 +10,7 @@ import (
 	_ "image/png"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"strings"
 
@@ -223,6 +224,7 @@ type Button struct {
 	onCursor  func(b *Button)
 
 	busy bool
+	item *Item
 }
 
 func (b *Button) Update() {
@@ -259,12 +261,31 @@ func (b *Button) Draw(dst *ebiten.Image) {
 		t = imageTypeTextBox
 	}
 	drawNinePatches(dst, b.Rect, imageSrcRects[t])
-
+	// op := &ebiten.DrawImageOptions{}
+	// op.Filter = ebiten.FilterLinear
 	bounds, _ := font.BoundString(uiFont, b.Text)
 	w := (bounds.Max.X - bounds.Min.X).Ceil()
 	x := b.Rect.Min.X + (b.Rect.Dx()-w)/2
 	y := b.Rect.Max.Y - (b.Rect.Dy()-uiFontMHeight)/2
-	text.Draw(dst, b.Text, uiFont, x, y, color.Black)
+	if b.item == nil {
+		text.Draw(dst, b.Text, uiFont, x, y, color.Black)
+	} else {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(b.Rect.Min.X-4), float64(b.Rect.Min.Y-4))
+		dst.DrawImage(itemImage, op)
+
+		var red, green, blue, alpha uint8
+		red = Log10IntToUint8(b.item.Attack, 6)
+		green = Log10IntToUint8(b.item.InstantHeal+b.item.MaxHp+b.item.SustainedHeal, 5)
+		blue = Log10IntToUint8(b.item.Defense, 5)
+		alpha = 255
+		text.Draw(dst, b.Text, uiFont, x, y, color.RGBA{
+			R: red,
+			G: green,
+			B: blue,
+			A: alpha,
+		})
+	}
 }
 
 func (b *Button) SetOnPressed(f func(b *Button)) {
@@ -562,6 +583,7 @@ func (g *Game) AddItem(item *Item) {
 		item.checked = !item.checked
 		g.CheckCheckedItem(item)
 	})
+	item.Button.item = item
 
 	item.Button.SetOnCursor(func(b *Button) {
 		g.textBoxLog.Text = itemStringer(item, 25)
@@ -745,6 +767,9 @@ func (g *Game) CheckCombineTextBoxLog() {
 		return
 	}
 	g.textBoxLog2.Text = itemStringer(g.checkedItems[0], 7)
+	if len(g.checkedItems) <= 1 {
+		return
+	}
 	g.textBoxLog3.Text = itemStringer(g.checkedItems[len(g.checkedItems)-1], 7)
 }
 
@@ -850,6 +875,16 @@ func (g *Game) DeleteItemsBusy(items []*Item) {
 	for _, item := range items {
 		item.busy = false
 	}
+}
+
+// digit = 6 <=> 100000 -> 255
+func Log10IntToUint8(num int, digit int) uint8 {
+	if num <= 0 {
+		return 0
+	} else if int(255*(math.Log10(float64(num)))/float64(digit)) >= 255 {
+		return 255
+	}
+	return uint8(int(255 * (math.Log10(float64(num))) / float64(digit)))
 }
 
 // My Func End
