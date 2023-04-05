@@ -22,6 +22,8 @@ import (
 	"golang.design/x/clipboard"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
+
+	pikachuPicture "game4/pictures"
 )
 
 type GameState int
@@ -270,6 +272,24 @@ func (b *Button) Draw(dst *ebiten.Image) {
 	if b.item == nil {
 		text.Draw(dst, b.Text, uiFont, x, y, color.Black)
 	} else {
+		img, _, err := image.Decode(bytes.NewReader(pikachuPicture.WeaponPng))
+		if err != nil {
+			log.Fatal(err)
+		}
+		itemImage := ebiten.NewImageFromImage(img)
+		if b.item.Category == "Armor" {
+			img, _, err := image.Decode(bytes.NewReader(pikachuPicture.ArmorPng))
+			if err != nil {
+				log.Fatal(err)
+			}
+			itemImage = ebiten.NewImageFromImage(img)
+		} else if b.item.Category == "Item" {
+			img, _, err := image.Decode(bytes.NewReader(pikachuPicture.ItemPng))
+			if err != nil {
+				log.Fatal(err)
+			}
+			itemImage = ebiten.NewImageFromImage(img)
+		}
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(b.Rect.Min.X-4), float64(b.Rect.Min.Y-4))
 		dst.DrawImage(itemImage, op)
