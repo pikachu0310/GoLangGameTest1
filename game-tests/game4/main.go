@@ -17,6 +17,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.design/x/clipboard"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 )
@@ -787,6 +788,9 @@ func GameMain() *Game {
 	})
 	g.AddNewButton(16*11, 16*1, 16*19, 16*3, "Load", func(b *Button) {
 		g.LoadItemsManual()
+	})
+	g.AddNewButton(16*20, 16*1, 16*38, 16*3, "左上をクリップボードにコピー", func(b *Button) {
+		CopyToClipboard(g.textBoxLog.Text)
 	})
 
 	g.checkBox = &CheckBox{
