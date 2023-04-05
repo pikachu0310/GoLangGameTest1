@@ -221,6 +221,8 @@ type Button struct {
 
 	onPressed func(b *Button)
 	onCursor  func(b *Button)
+
+	busy bool
 }
 
 func (b *Button) Update() {
@@ -252,6 +254,9 @@ func (b *Button) Draw(dst *ebiten.Image) {
 	t := imageTypeButton
 	if b.mouseDown {
 		t = imageTypeButtonPressed
+	}
+	if b.busy {
+		t = imageTypeTextBox
 	}
 	drawNinePatches(dst, b.Rect, imageSrcRects[t])
 
@@ -612,10 +617,12 @@ func getCheckedItems(items []*Item) []*Item {
 }
 
 func (g *Game) AddCheckedItem(item *Item) {
+	item.checked = true
 	g.checkedItems = append(g.checkedItems, item)
 }
 
 func (g *Game) DeleteCheckedItem(item *Item) {
+	item.checked = false
 	for i := 0; i < len(g.checkedItems); i++ {
 		if g.checkedItems[i] == item {
 			g.checkedItems = append(g.checkedItems[:i], g.checkedItems[i+1:]...)
@@ -734,7 +741,6 @@ func (g *Game) AddNewButton(x0, y0, x1, y1 int, text string, f func(b *Button)) 
 }
 
 func (g *Game) CheckCombineTextBoxLog() {
-	fmt.Println(g.checkedItems)
 	if len(g.checkedItems) <= 0 {
 		return
 	}
@@ -778,17 +784,21 @@ func (g *Game) GenerateItem() {
 }
 
 func (g *Game) CombineItem() {
-	if len(g.checkedItems) <= 1 {
+	deleteItems := make([]*Item, len(g.checkedItems))
+	copy(deleteItems, g.checkedItems)
+	if len(deleteItems) <= 1 {
 		g.combining -= 1
 		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Please select two or more items. (%d)", g.combining), 12))
 		return
 	}
-	items := combineItem(g.checkedItems)
+	g.AddItemsBusy(deleteItems)
+	items := combineItem(deleteItems)
 
-	if items == nil {
+	if items == nil || len(items) <= 0 {
 		fmt.Println("item is nil")
 		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining), 12))
 		g.combining -= 1
+		g.DeleteItemsBusy(deleteItems)
 		return
 	}
 	for _, item := range items {
@@ -796,6 +806,7 @@ func (g *Game) CombineItem() {
 			fmt.Println("item is nil")
 			g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining), 12))
 			g.combining -= 1
+			g.DeleteItemsBusy(deleteItems)
 			return
 		}
 		g.AddItem(item)
@@ -803,14 +814,14 @@ func (g *Game) CombineItem() {
 	}
 
 	data := []byte("--------------------合成前アイテム--------------------\n")
-	for i, item := range g.checkedItems {
+	for i, item := range deleteItems {
 		data = append(data, []byte(fmt.Sprintf("----------アイテム%d----------\n%s\n", i+1, itemStringer(item, 25)))...)
 	}
 	data = append(data, []byte("--------------------合成後アイテム--------------------\n")...)
 	data = append(data, []byte(fmt.Sprintf("%s\n", itemStringer(items[0], 25)))...)
 
-	// fmt.Println(g.checkedItems)
-	g.DeleteItems(getCheckedItems(g.checkedItems))
+	// fmt.Println(deleteItems)
+	g.DeleteItems(deleteItems)
 	g.SaveItems()
 	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item combining is finished. (%d)", g.combining), 12))
 	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Auto Saved %d items", len(g.items))), 12))
@@ -825,6 +836,19 @@ func (g *Game) CombineItem() {
 	err = ioutil.WriteFile("CombineLog.txt", data, 0755)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func (g *Game) AddItemsBusy(items []*Item) {
+	for _, item := range items {
+		item.busy = true
+		g.DeleteCheckedItem(item)
+	}
+}
+
+func (g *Game) DeleteItemsBusy(items []*Item) {
+	for _, item := range items {
+		item.busy = false
 	}
 }
 
@@ -852,8 +876,12 @@ func GameMain() *Game {
 	g := &Game{}
 	g.LoadItems()
 	g.AddNewButton(16*40, 16*2, 16*48, 16*6, "Generate", func(b *Button) {
-		if g.generating >= 3 {
-			g.textBoxLog5.AppendLineToFirst(intervalStringer("Generating is full! (max:3)", 12))
+		if g.generating >= 5 {
+			g.textBoxLog5.AppendLineToFirst(intervalStringer("Generating is full! (max:5)", 12))
+			return
+		}
+		if len(g.items) >= 40 {
+			g.textBoxLog5.AppendLineToFirst(intervalStringer("Items is full! (max:40)", 12))
 			return
 		}
 		g.generating += 1
@@ -861,8 +889,8 @@ func GameMain() *Game {
 		go g.GenerateItem()
 	})
 	g.AddNewButton(16*40, 16*7, 16*48, 16*11, "Combine", func(b *Button) {
-		if g.combining >= 1 {
-			g.textBoxLog5.AppendLineToFirst(intervalStringer("Combining is full! (max:1)", 12))
+		if g.combining >= 5 {
+			g.textBoxLog5.AppendLineToFirst(intervalStringer("Combining is full! (max:5)", 12))
 			return
 		}
 		g.combining += 1
@@ -925,8 +953,10 @@ func (g *Game) Update() error {
 		button.Update()
 	}
 	for _, item := range g.items {
-		item.Button.Update()
-		item.CheckBox.Update()
+		if !item.busy {
+			item.Button.Update()
+			item.CheckBox.Update()
+		}
 	}
 	g.checkBox.Update()
 	g.textBoxLog.Update()
@@ -944,7 +974,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	for _, item := range g.items {
 		item.Button.Draw(screen)
-		item.CheckBox.Draw(screen)
+		if !item.busy {
+			item.CheckBox.Draw(screen)
+		}
 	}
 	// g.checkBox.Draw(screen)
 	g.textBoxLog.Draw(screen)
