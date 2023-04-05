@@ -5,19 +5,20 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	ebiten "github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
-	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/text"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
 	"image"
 	"image/color"
 	_ "image/png"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 type GameState int
@@ -63,24 +64,24 @@ type Item struct {
 	*CheckBox
 }
 
-func generateItem() *Item {
-	item, err := GptGenerateItem()
+func generateItem() []*Item {
+	items, err := GptGenerateItem()
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {
-		fmt.Printf("Item:%+v\n", item)
+		fmt.Printf("Item:%+v\n", items)
 	}
-	return item
+	return items
 }
 
-func combineItem(items []*Item) *Item {
-	item, err := GptCombineItem(items)
+func combineItem(items []*Item) []*Item {
+	items, err := GptCombineItem(items)
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {
-		fmt.Printf("Item:%+v\n", item)
+		fmt.Printf("Item:%+v\n", items)
 	}
-	return item
+	return items
 }
 
 var (
@@ -91,7 +92,7 @@ var (
 )
 
 const (
-	lineHeight = 16 + 8 //16
+	lineHeight = 16 + 8 // 16
 )
 
 func init() {
@@ -117,11 +118,11 @@ func init() {
 	b, _, _ := uiFont.GlyphBounds('M')
 	uiFontMHeight = (b.Max.Y - b.Min.Y).Ceil()
 
-	//img, _, err = image.Decode(bytes.NewReader(myimages.Slime_png))
-	//if err != nil {
+	// img, _, err = image.Decode(bytes.NewReader(myimages.Slime_png))
+	// if err != nil {
 	//	log.Fatal(err)
-	//}
-	//slimeImage = ebiten.NewImageFromImage(img)
+	// }
+	// slimeImage = ebiten.NewImageFromImage(img)
 }
 
 type imageType int
@@ -149,8 +150,8 @@ var imageSrcRects = map[imageType]image.Rectangle{
 }
 
 const (
-	screenWidth  = 1280
-	screenHeight = 720
+	screenWidth  = 1280 + 10
+	screenHeight = 720 + 10
 )
 
 type Input struct {
@@ -497,14 +498,20 @@ func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
 // My Func Start
 func FormatItemsGUI(items []*Item) {
 	for i := 0; i < len(items); i++ {
-		items[i].Button.Rect = image.Rect(16*50, 16*(2+3*(i)), 16*64, 16*(4+3*(i)))
-		items[i].CheckBox.X = 16*48 + 12
-		items[i].CheckBox.Y = 16*(2+3*(i)) + 8
+		if i <= 14 {
+			items[i].Button.Rect = image.Rect(16*50, 16*(1+3*(i))-4, 16*64, 16*(3+3*(i))+4)
+			items[i].CheckBox.X = 16*48 + 12
+			items[i].CheckBox.Y = 16*(1+3*(i)) + 8
+		} else {
+			items[i].Button.Rect = image.Rect(16*66, 16*(1+3*(i-15))-4, 16*80, 16*(3+3*(i-15))+4)
+			items[i].CheckBox.X = 16*64 + 12
+			items[i].CheckBox.Y = 16*(1+3*(i-15)) + 8
+		}
 	}
 }
 
 func itemStringer(item *Item) string {
-	//return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 60))
+	// return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 60))
 	return fmt.Sprintf("アイテム情報\n名前　　: %s\n種類　　: %s\n最大体力: %d\n即時回復: %d\n持続回復: %d\n攻撃力　: %d\n防御力　: %d\n説明文　:%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 25))
 }
 
@@ -580,14 +587,14 @@ func addNewline(str string, interval int) string {
 func (g *Game) SaveItems() {
 	err := writeToFile(g.items, "SaveDataAuto.gob")
 	if err == nil {
-		fmt.Println(err)
+		fmt.Println(fmt.Sprintf("Saved %d items", len(g.items)))
 	}
 }
 
 func (g *Game) LoadItems() {
 	items, err := readFromFile("SaveDataAuto.gob")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(fmt.Sprintf("Failed to load items: %v", err))
 		return
 	}
 	g.ResetItems(items)
@@ -596,14 +603,14 @@ func (g *Game) LoadItems() {
 func (g *Game) SaveItemsManual() {
 	err := writeToFile(g.items, "SaveDataManual.gob")
 	if err == nil {
-		fmt.Println(err)
+		fmt.Println(fmt.Sprintf("Saved %d items", len(g.items)))
 	}
 }
 
 func (g *Game) LoadItemsManual() {
 	err := writeToFile(g.items, "SaveDataManual.gob")
 	if err == nil {
-		fmt.Println(err)
+		fmt.Println(fmt.Sprintf("Loaded %d items", len(g.items)))
 	}
 }
 
@@ -671,22 +678,34 @@ func GameMain() *Game {
 	g := &Game{}
 	g.LoadItems()
 	g.AddNewButton(16*40, 16*2, 16*48, 16*6, "Generate", func(b *Button) {
-		item := generateItem()
-		if item == nil {
+		items := generateItem()
+		if items == nil {
 			fmt.Println("item is nil")
 			return
 		}
-		g.AddItem(item)
+		for _, item := range items {
+			if item == nil {
+				fmt.Println("item is nil")
+				return
+			}
+			g.AddItem(item)
+		}
 		g.SaveItems()
 	})
 	g.AddNewButton(16*40, 16*7, 16*48, 16*11, "Combine", func(b *Button) {
-		item := combineItem(getCheckedItems(g.items))
-		if item == nil {
+		items := combineItem(getCheckedItems(g.items))
+		if items == nil {
 			fmt.Println("item is nil")
 			return
 		}
+		for _, item := range items {
+			if item == nil {
+				fmt.Println("item is nil")
+				return
+			}
+			g.AddItem(item)
+		}
 		g.DeleteItems(getCheckedItems(g.items))
-		g.AddItem(item)
 		g.SaveItems()
 	})
 	g.AddNewButton(16*2, 16*1, 16*10, 16*3, "Save", func(b *Button) {
@@ -744,7 +763,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		item.Button.Draw(screen)
 		item.CheckBox.Draw(screen)
 	}
-	//g.checkBox.Draw(screen)
+	// g.checkBox.Draw(screen)
 	g.textBoxLog.Draw(screen)
 }
 

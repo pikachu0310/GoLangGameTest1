@@ -170,7 +170,7 @@ func RequestOpenaiAPI(requestBody OpenaiRequest) (OpenaiResponse, error) {
 func main() {
 	res, err := RequestOpenaiAPIByStrings([]string{"あなたは質問に答えるaiです。", "こんにちは!"})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(fmt.Sprintf("errorAI: %v", err))
 	}
 	fmt.Println(res.Choices)
 }
