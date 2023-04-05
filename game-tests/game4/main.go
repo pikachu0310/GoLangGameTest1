@@ -623,8 +623,10 @@ func addNewline(str string, interval int) string {
 
 func (g *Game) SaveItems() {
 	err := writeToFile(g.items, "SaveDataAuto.gob")
-	if err == nil {
-		fmt.Println(fmt.Sprintf("Saved %d items", len(g.items)))
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Failed to save items: %v", err))
+	} else {
+		fmt.Println(fmt.Sprintf("Saved %d items Auto", len(g.items)))
 	}
 }
 
@@ -633,22 +635,30 @@ func (g *Game) LoadItems() {
 	if err != nil {
 		fmt.Println(fmt.Sprintf("Failed to load items: %v", err))
 		return
+	} else {
+		fmt.Println(fmt.Sprintf("Loaded %d items Auto", len(g.items)))
 	}
 	g.ResetItems(items)
 }
 
 func (g *Game) SaveItemsManual() {
 	err := writeToFile(g.items, "SaveDataManual.gob")
-	if err == nil {
-		fmt.Println(fmt.Sprintf("Saved %d items", len(g.items)))
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Failed to save items: %v", err))
+	} else {
+		fmt.Println(fmt.Sprintf("Saved %d items Manual", len(g.items)))
 	}
 }
 
 func (g *Game) LoadItemsManual() {
-	err := writeToFile(g.items, "SaveDataManual.gob")
-	if err == nil {
-		fmt.Println(fmt.Sprintf("Loaded %d items", len(g.items)))
+	items, err := readFromFile("SaveDataManual.gob")
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Failed to load items: %v", err))
+		return
+	} else {
+		fmt.Println(fmt.Sprintf("Loaded %d items Manual", len(g.items)))
 	}
+	g.ResetItems(items)
 }
 
 func writeToFile(items []*Item, filePath string) error {
