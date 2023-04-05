@@ -379,6 +379,14 @@ func (t *TextBox) AppendLine(line string) {
 	}
 }
 
+func (t *TextBox) AppendLineToFirst(line string) {
+	if t.Text == "" {
+		t.Text = line
+	} else {
+		t.Text = line + "\n" + t.Text
+	}
+}
+
 func (t *TextBox) Update() {
 	if t.vScrollBar == nil {
 		t.vScrollBar = &VScrollBar{}
@@ -524,8 +532,13 @@ func FormatItemsGUI(items []*Item) {
 }
 
 func itemStringer(item *Item, interval int) string {
-	// return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 60))
-	return fmt.Sprintf("アイテム情報\n名前　　: %s\n種類　　: %s\n最大体力: %d\n即時回復: %d\n持続回復: %d\n攻撃力　: %d\n防御力　: %d\n説明文　:%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, interval))
+	// return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewLineItem(item.Description, 60))
+	return fmt.Sprintf("アイテム情報\n名前　　: %s\n種類　　: %s\n最大体力: %d\n即時回復: %d\n持続回復: %d\n攻撃力　: %d\n防御力　: %d\n説明文　:%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewLineItem(item.Description, interval))
+}
+
+func intervalStringer(text string, interval int) string {
+	// return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewLineItem(item.Description, 60))
+	return fmt.Sprintf(addNewLine(text, interval))
 }
 
 func (g *Game) AddItem(item *Item) {
@@ -610,12 +623,24 @@ func (g *Game) DeleteCheckedItem(item *Item) {
 	}
 }
 
-func addNewline(str string, interval int) string {
+func addNewLineItem(str string, interval int) string {
 	strSlice := strings.Split(str, "")
 	var result string
 	for i, s := range strSlice {
 		if i%interval == 0 && i != 0 {
 			result += "\n　　　　 "
+		}
+		result += s
+	}
+	return result
+}
+
+func addNewLine(str string, interval int) string {
+	strSlice := strings.Split(str, "")
+	var result string
+	for i, s := range strSlice {
+		if i%interval == 0 && i != 0 {
+			result += "\n"
 		}
 		result += s
 	}
@@ -648,6 +673,7 @@ func (g *Game) SaveItemsManual() {
 		fmt.Println(fmt.Sprintf("Failed to save items: %v", err))
 	} else {
 		fmt.Println(fmt.Sprintf("Saved %d items Manual", len(g.items)))
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Manual Saved %d items", len(g.items))), 12))
 	}
 }
 
@@ -658,6 +684,7 @@ func (g *Game) LoadItemsManual() {
 		return
 	} else {
 		fmt.Println(fmt.Sprintf("Loaded %d items Manual", len(g.items)))
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Manual Loaded %d items", len(g.items))), 12))
 	}
 	g.ResetItems(items)
 }
@@ -727,6 +754,52 @@ func CopyToClipboard(text string) {
 	clipboard.Write(clipboard.FmtText, []byte(text))
 }
 
+func (g *Game) GenerateItem() {
+	items := generateItem()
+	if items == nil {
+		fmt.Println("item is nil")
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.generating), 12))
+		g.generating -= 1
+		return
+	}
+	for _, item := range items {
+		if item == nil {
+			fmt.Println("item is nil")
+			g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.generating), 12))
+			g.generating -= 1
+			return
+		}
+		g.AddItem(item)
+	}
+	g.SaveItems()
+	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item generating is finished. (%d)", g.generating), 12))
+	g.generating -= 1
+}
+
+func (g *Game) CombineItem() {
+	if len(g.checkedItems) <= 1 {
+		g.combining -= 1
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Please select two or more items. (%d)", g.combining), 12))
+		return
+	}
+	items := combineItem(g.checkedItems)
+
+	if items == nil {
+		fmt.Println("item is nil")
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining), 12))
+		g.combining -= 1
+		return
+	}
+	for _, item := range items {
+		if item == nil {
+			fmt.Println("item is nil")
+			g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining), 12))
+			g.combining -= 1
+			return
+		}
+		g.AddItem(item)
+		g.textBoxLog4.Text = itemStringer(item, 7)
+	}
 // My Func End
 
 type Game struct {
@@ -736,52 +809,37 @@ type Game struct {
 	textBoxLog2  *TextBox
 	textBoxLog3  *TextBox
 	textBoxLog4  *TextBox
+	textBoxLog5  *TextBox
 	items        []*Item
 	checkedItems []*Item
 	slime        *Button
 	Player       Player
 	Enemy        Enemy
 	GameState    GameState
+	generating   int
+	combining    int
 }
 
 func GameMain() *Game {
 	g := &Game{}
 	g.LoadItems()
 	g.AddNewButton(16*40, 16*2, 16*48, 16*6, "Generate", func(b *Button) {
-		items := generateItem()
-		if items == nil {
-			fmt.Println("item is nil")
+		if g.generating >= 3 {
+			g.textBoxLog5.AppendLineToFirst(intervalStringer("Generating is full! (max:3)", 12))
 			return
 		}
-		for _, item := range items {
-			if item == nil {
-				fmt.Println("item is nil")
-				return
-			}
-			g.AddItem(item)
-		}
-		g.SaveItems()
+		g.generating += 1
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item generating in progress... (%d)", g.generating), 12))
+		go g.GenerateItem()
 	})
 	g.AddNewButton(16*40, 16*7, 16*48, 16*11, "Combine", func(b *Button) {
-		if len(g.checkedItems) <= 1 {
+		if g.combining >= 1 {
+			g.textBoxLog5.AppendLineToFirst(intervalStringer("Combining is full! (max:1)", 12))
 			return
 		}
-		items := combineItem(g.checkedItems)
-		if items == nil {
-			fmt.Println("item is nil")
-			return
-		}
-		for _, item := range items {
-			if item == nil {
-				fmt.Println("item is nil")
-				return
-			}
-			g.AddItem(item)
-			g.textBoxLog4.Text = itemStringer(item, 7)
-		}
-		fmt.Println(g.checkedItems)
-		g.DeleteItems(getCheckedItems(g.checkedItems))
-		g.SaveItems()
+		g.combining += 1
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item combining in progress... (%d)", g.combining), 12))
+		go g.CombineItem()
 	})
 	g.AddNewButton(16*2, 16*1, 16*10, 16*3, "Save", func(b *Button) {
 		g.SaveItemsManual()
@@ -791,6 +849,7 @@ func GameMain() *Game {
 	})
 	g.AddNewButton(16*20, 16*1, 16*38, 16*3, "左上をクリップボードにコピー", func(b *Button) {
 		CopyToClipboard(g.textBoxLog.Text)
+		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Copied!"), 12))
 	})
 
 	g.checkBox = &CheckBox{
@@ -810,6 +869,9 @@ func GameMain() *Game {
 	g.textBoxLog4 = &TextBox{
 		Rect: image.Rect(16*33, 16*25, 16*48, 16*45),
 	}
+	g.textBoxLog5 = &TextBox{
+		Rect: image.Rect(16*39+8, 16*12, 16*48, 16*24),
+	}
 
 	g.slime = &Button{
 		Rect: image.Rect(16, 480, 144, 512),
@@ -826,6 +888,7 @@ func GameMain() *Game {
 	// 	}
 	// 	g.textBoxLog.AppendLine(msg)
 	// })
+	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Auto Loaded %d items", len(g.items))), 12))
 	return g
 }
 
@@ -842,6 +905,7 @@ func (g *Game) Update() error {
 	g.textBoxLog2.Update()
 	g.textBoxLog3.Update()
 	g.textBoxLog4.Update()
+	g.textBoxLog5.Update()
 	return nil
 }
 
@@ -859,6 +923,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.textBoxLog2.Draw(screen)
 	g.textBoxLog3.Draw(screen)
 	g.textBoxLog4.Draw(screen)
+	g.textBoxLog5.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
