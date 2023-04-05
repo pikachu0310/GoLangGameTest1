@@ -510,9 +510,9 @@ func FormatItemsGUI(items []*Item) {
 	}
 }
 
-func itemStringer(item *Item) string {
+func itemStringer(item *Item, interval int) string {
 	// return fmt.Sprintf("Item Info\nName: %s\nCategory: %s\nMaxHp: %d\nInstantHeal: %d\nSustainedHeal: %d\nAttck: %d\nDefence: %d\nDescription: \n%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 60))
-	return fmt.Sprintf("アイテム情報\n名前　　: %s\n種類　　: %s\n最大体力: %d\n即時回復: %d\n持続回復: %d\n攻撃力　: %d\n防御力　: %d\n説明文　:%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, 25))
+	return fmt.Sprintf("アイテム情報\n名前　　: %s\n種類　　: %s\n最大体力: %d\n即時回復: %d\n持続回復: %d\n攻撃力　: %d\n防御力　: %d\n説明文　:%s\n", item.Name, item.Category, item.MaxHp, item.InstantHeal, item.SustainedHeal, item.Attack, item.Defense, addNewline(item.Description, interval))
 }
 
 func (g *Game) AddItem(item *Item) {
@@ -526,14 +526,20 @@ func (g *Game) AddItem(item *Item) {
 		Text: item.Name,
 	}
 	item.Button.SetOnPressed(func(b *Button) {
-		g.textBoxLog.Text = itemStringer(item)
+		g.textBoxLog.Text = itemStringer(item, 25)
+		item.checked = !item.checked
+		g.CheckCheckedItem(item)
+	})
+
+	item.Button.SetOnCursor(func(b *Button) {
+		g.textBoxLog.Text = itemStringer(item, 25)
 	})
 
 	item.CheckBox = &CheckBox{
 		Text: "",
 	}
 	item.CheckBox.SetOnCheckChanged(func(c *CheckBox) {
-		fmt.Println("CheckBox is checked:", c.Checked())
+		g.CheckCheckedItem(item)
 	})
 
 	FormatItemsGUI(g.items)
@@ -552,6 +558,7 @@ func (g *Game) DeleteItem(item *Item) {
 func (g *Game) DeleteItems(items []*Item) {
 	for i := 0; i < len(items); i++ {
 		g.DeleteItem(items[i])
+		g.DeleteCheckedItem(items[i])
 	}
 }
 
@@ -559,6 +566,11 @@ func (g *Game) ResetItems(items []*Item) {
 	g.items = []*Item{}
 	for i := 0; i < len(items); i++ {
 		g.AddItem(items[i])
+	}
+	g.checkedItems = []*Item{}
+	items2 := getCheckedItems(g.items)
+	for _, item := range items2 {
+		g.checkedItems = append(g.checkedItems, item)
 	}
 }
 
@@ -570,6 +582,19 @@ func getCheckedItems(items []*Item) []*Item {
 		}
 	}
 	return checkedItems
+}
+
+func (g *Game) AddCheckedItem(item *Item) {
+	g.checkedItems = append(g.checkedItems, item)
+}
+
+func (g *Game) DeleteCheckedItem(item *Item) {
+	for i := 0; i < len(g.checkedItems); i++ {
+		if g.checkedItems[i] == item {
+			g.checkedItems = append(g.checkedItems[:i], g.checkedItems[i+1:]...)
+			break
+		}
+	}
 }
 
 func addNewline(str string, interval int) string {
@@ -657,21 +682,43 @@ func (g *Game) AddNewButton(x0, y0, x1, y1 int, text string, f func(b *Button)) 
 	g.buttons = append(g.buttons, newButton)
 }
 
+func (g *Game) CheckCombineTextBoxLog() {
+	fmt.Println(g.checkedItems)
+	if len(g.checkedItems) <= 0 {
+		return
+	}
+	g.textBoxLog2.Text = itemStringer(g.checkedItems[0], 7)
+	g.textBoxLog3.Text = itemStringer(g.checkedItems[len(g.checkedItems)-1], 7)
+}
+
+func (g *Game) CheckCheckedItem(item *Item) {
+	if item.checked {
+		g.AddCheckedItem(item)
+	} else {
+		g.DeleteCheckedItem(item)
+	}
+	g.CheckCombineTextBoxLog()
+}
+
+func CopyToClipboard(text string) {
+	clipboard.Write(clipboard.FmtText, []byte(text))
+}
+
 // My Func End
 
 type Game struct {
-	buttons    []*Button
-	button1    *Button
-	button2    *Button
-	button3    *Button
-	button4    *Button
-	checkBox   *CheckBox
-	textBoxLog *TextBox
-	items      []*Item
-	slime      *Button
-	Player     Player
-	Enemy      Enemy
-	GameState  GameState
+	buttons      []*Button
+	checkBox     *CheckBox
+	textBoxLog   *TextBox
+	textBoxLog2  *TextBox
+	textBoxLog3  *TextBox
+	textBoxLog4  *TextBox
+	items        []*Item
+	checkedItems []*Item
+	slime        *Button
+	Player       Player
+	Enemy        Enemy
+	GameState    GameState
 }
 
 func GameMain() *Game {
@@ -693,7 +740,10 @@ func GameMain() *Game {
 		g.SaveItems()
 	})
 	g.AddNewButton(16*40, 16*7, 16*48, 16*11, "Combine", func(b *Button) {
-		items := combineItem(getCheckedItems(g.items))
+		if len(g.checkedItems) <= 1 {
+			return
+		}
+		items := combineItem(g.checkedItems)
 		if items == nil {
 			fmt.Println("item is nil")
 			return
@@ -704,8 +754,10 @@ func GameMain() *Game {
 				return
 			}
 			g.AddItem(item)
+			g.textBoxLog4.Text = itemStringer(item, 7)
 		}
-		g.DeleteItems(getCheckedItems(g.items))
+		fmt.Println(g.checkedItems)
+		g.DeleteItems(getCheckedItems(g.checkedItems))
 		g.SaveItems()
 	})
 	g.AddNewButton(16*2, 16*1, 16*10, 16*3, "Save", func(b *Button) {
@@ -721,23 +773,33 @@ func GameMain() *Game {
 		Text: "Check Box!",
 	}
 	g.textBoxLog = &TextBox{
-		Rect: image.Rect(16, 16*4, 624, 464),
+		Rect: image.Rect(16*1, 16*4, 16*39, 16*24),
 	}
+	g.textBoxLog2 = &TextBox{
+		Rect: image.Rect(16*1, 16*25, 16*16, 16*45),
+	}
+	g.textBoxLog3 = &TextBox{
+		Rect: image.Rect(16*17, 16*25, 16*32, 16*45),
+	}
+	g.textBoxLog4 = &TextBox{
+		Rect: image.Rect(16*33, 16*25, 16*48, 16*45),
+	}
+
 	g.slime = &Button{
 		Rect: image.Rect(16, 480, 144, 512),
 	}
 
-	g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
-		msg := "Check box check changed"
-		if c.Checked() {
-			msg += " (Checked)"
-			g.SaveItems()
-		} else {
-			msg += " (Unchecked)"
-			g.LoadItems()
-		}
-		g.textBoxLog.AppendLine(msg)
-	})
+	// g.checkBox.SetOnCheckChanged(func(c *CheckBox) {
+	// 	msg := "Check box check changed"
+	// 	if c.Checked() {
+	// 		msg += " (Checked)"
+	// 		g.SaveItems()
+	// 	} else {
+	// 		msg += " (Unchecked)"
+	// 		g.LoadItems()
+	// 	}
+	// 	g.textBoxLog.AppendLine(msg)
+	// })
 	return g
 }
 
@@ -751,6 +813,9 @@ func (g *Game) Update() error {
 	}
 	g.checkBox.Update()
 	g.textBoxLog.Update()
+	g.textBoxLog2.Update()
+	g.textBoxLog3.Update()
+	g.textBoxLog4.Update()
 	return nil
 }
 
@@ -765,6 +830,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	// g.checkBox.Draw(screen)
 	g.textBoxLog.Draw(screen)
+	g.textBoxLog2.Draw(screen)
+	g.textBoxLog3.Draw(screen)
+	g.textBoxLog4.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
