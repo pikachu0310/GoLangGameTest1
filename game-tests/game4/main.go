@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/color"
 	_ "image/png"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -800,6 +801,33 @@ func (g *Game) CombineItem() {
 		g.AddItem(item)
 		g.textBoxLog4.Text = itemStringer(item, 7)
 	}
+
+	data := []byte("--------------------合成前アイテム--------------------\n")
+	for i, item := range g.checkedItems {
+		data = append(data, []byte(fmt.Sprintf("----------アイテム%d----------\n%s\n", i+1, itemStringer(item, 25)))...)
+	}
+	data = append(data, []byte("--------------------合成後アイテム--------------------\n")...)
+	data = append(data, []byte(fmt.Sprintf("%s\n", itemStringer(items[0], 25)))...)
+
+	// fmt.Println(g.checkedItems)
+	g.DeleteItems(getCheckedItems(g.checkedItems))
+	g.SaveItems()
+	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item combining is finished. (%d)", g.combining), 12))
+	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Auto Saved %d items", len(g.items))), 12))
+	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Log exported (CombineLog.txt)")), 12))
+	g.combining -= 1
+
+	data2, err := ioutil.ReadFile("CombineLog.txt")
+	if err != nil {
+		fmt.Println(err)
+	}
+	data = append(data2, data...)
+	err = ioutil.WriteFile("CombineLog.txt", data, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 // My Func End
 
 type Game struct {
