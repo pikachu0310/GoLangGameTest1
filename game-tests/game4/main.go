@@ -416,6 +416,9 @@ type TextBox struct {
 	vScrollBar *VScrollBar
 	offsetX    int
 	offsetY    int
+
+	textBoxFont        font.Face
+	textBoxFontMHeight int
 }
 
 func (t *TextBox) AppendLine(line string) {
@@ -481,14 +484,14 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 	t.contentBuf.Clear()
 	for i, line := range strings.Split(t.Text, "\n") {
 		x := -t.offsetX + textBoxPaddingLeft
-		y := -t.offsetY + i*lineHeight + lineHeight - (lineHeight-uiFontMHeight)/2
+		y := -t.offsetY + i*lineHeight + lineHeight - (lineHeight-t.textBoxFontMHeight)/2
 		if y < -lineHeight {
 			continue
 		}
 		if _, h := t.viewSize(); y >= h+lineHeight {
 			continue
 		}
-		text.Draw(t.contentBuf, line, uiFont, x, y, color.Black)
+		text.Draw(t.contentBuf, line, t.textBoxFont, x, y, color.Black)
 	}
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(t.Rect.Min.X), float64(t.Rect.Min.Y))
@@ -723,7 +726,7 @@ func (g *Game) SaveItemsManual() {
 		fmt.Println(fmt.Sprintf("Failed to save items: %v", err))
 	} else {
 		fmt.Println(fmt.Sprintf("Saved %d items Manual", len(g.items)))
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Manual Saved %d items", len(g.items))), 12))
+		g.LogStringer(fmt.Sprintf("Manual Saved %d items", len(g.items)))
 	}
 }
 
@@ -734,7 +737,7 @@ func (g *Game) LoadItemsManual() {
 		return
 	} else {
 		fmt.Println(fmt.Sprintf("Loaded %d items Manual", len(g.items)))
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Manual Loaded %d items", len(g.items))), 12))
+		g.LogStringer(fmt.Sprintf("Manual Loaded %d items", len(g.items)))
 	}
 	g.ResetItems(items)
 }
@@ -810,21 +813,21 @@ func (g *Game) GenerateItem() {
 	items := generateItem()
 	if items == nil {
 		fmt.Println("item is nil")
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.generating), 12))
+		g.LogStringer(fmt.Sprintf("Error: item is nil (%d)", g.generating))
 		g.generating -= 1
 		return
 	}
 	for _, item := range items {
 		if item == nil {
 			fmt.Println("item is nil")
-			g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.generating), 12))
+			g.LogStringer(fmt.Sprintf("Error: item is nil (%d)", g.generating))
 			g.generating -= 1
 			return
 		}
 		g.AddItem(item)
 	}
 	g.SaveItems()
-	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item generating is finished. (%d)", g.generating), 12))
+	g.LogStringer(fmt.Sprintf("Item generating is finished. (%d)", g.generating))
 	g.generating -= 1
 }
 
@@ -833,7 +836,7 @@ func (g *Game) CombineItem() {
 	copy(deleteItems, g.checkedItems)
 	if len(deleteItems) <= 1 {
 		g.combining -= 1
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Please select two or more items. (%d)", g.combining), 12))
+		g.LogStringer(fmt.Sprintf("Please select two or more items. (%d)", g.combining))
 		return
 	}
 	g.AddItemsBusy(deleteItems)
@@ -841,7 +844,7 @@ func (g *Game) CombineItem() {
 
 	if items == nil || len(items) <= 0 {
 		fmt.Println("item is nil")
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining), 12))
+		g.LogStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining))
 		g.combining -= 1
 		g.DeleteItemsBusy(deleteItems)
 		return
@@ -849,7 +852,7 @@ func (g *Game) CombineItem() {
 	for _, item := range items {
 		if item == nil {
 			fmt.Println("item is nil")
-			g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining), 12))
+			g.LogStringer(fmt.Sprintf("Error: item is nil (%d)", g.combining))
 			g.combining -= 1
 			g.DeleteItemsBusy(deleteItems)
 			return
@@ -868,9 +871,9 @@ func (g *Game) CombineItem() {
 	// fmt.Println(deleteItems)
 	g.DeleteItems(deleteItems)
 	g.SaveItems()
-	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item combining is finished. (%d)", g.combining), 12))
-	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Auto Saved %d items", len(g.items))), 12))
-	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Log exported (CombineLog.txt)")), 12))
+	g.LogStringer(fmt.Sprintf("Item combining is finished. (%d)", g.combining))
+	g.LogStringer(fmt.Sprintf("Auto Saved %d items", len(g.items)))
+	g.LogStringer("Log exported (CombineLog.txt)")
 	g.combining -= 1
 
 	data2, err := ioutil.ReadFile("CombineLog.txt")
@@ -907,6 +910,10 @@ func Log10IntToUint8(num int, digit int) uint8 {
 	return uint8(int(255 * (math.Log10(float64(num))) / float64(digit)))
 }
 
+func (g *Game) LogStringer(text string) {
+	g.textBoxLog5.AppendLineToFirst(intervalStringer(text, 17))
+}
+
 // My Func End
 
 type Game struct {
@@ -932,24 +939,24 @@ func GameMain() *Game {
 	g.LoadItems()
 	g.AddNewButton(16*40, 16*2, 16*48, 16*6, "Generate", func(b *Button) {
 		if g.generating >= 5 {
-			g.textBoxLog5.AppendLineToFirst(intervalStringer("Generating is full! (max:5)", 12))
+			g.LogStringer("Generating is full! (max:5)")
 			return
 		}
 		if len(g.items) >= 40 {
-			g.textBoxLog5.AppendLineToFirst(intervalStringer("Items is full! (max:40)", 12))
+			g.LogStringer("Items is full! (max:40)")
 			return
 		}
 		g.generating += 1
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item generating in progress... (%d)", g.generating), 12))
+		g.LogStringer(fmt.Sprintf("Item generating in progress... (%d)", g.generating))
 		go g.GenerateItem()
 	})
 	g.AddNewButton(16*40, 16*7, 16*48, 16*11, "Combine", func(b *Button) {
 		if g.combining >= 5 {
-			g.textBoxLog5.AppendLineToFirst(intervalStringer("Combining is full! (max:5)", 12))
+			g.LogStringer("Combining is full! (max:5)")
 			return
 		}
 		g.combining += 1
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Item combining in progress... (%d)", g.combining), 12))
+		g.LogStringer(fmt.Sprintf("Item combining in progress... (%d)", g.combining))
 		go g.CombineItem()
 	})
 	g.AddNewButton(16*2, 16*1, 16*10, 16*3, "Save", func(b *Button) {
@@ -960,7 +967,7 @@ func GameMain() *Game {
 	})
 	g.AddNewButton(16*20, 16*1, 16*38, 16*3, "左上をクリップボードにコピー", func(b *Button) {
 		CopyToClipboard(g.textBoxLog.Text)
-		g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf("Copied!"), 12))
+		g.LogStringer(fmt.Sprintf("Copied!"))
 	})
 
 	g.checkBox = &CheckBox{
@@ -969,19 +976,43 @@ func GameMain() *Game {
 		Text: "Check Box!",
 	}
 	g.textBoxLog = &TextBox{
-		Rect: image.Rect(16*1, 16*4, 16*39, 16*24),
+		Rect:               image.Rect(16*1, 16*4, 16*39, 16*24),
+		textBoxFont:        uiFont,
+		textBoxFontMHeight: uiFontMHeight,
 	}
 	g.textBoxLog2 = &TextBox{
-		Rect: image.Rect(16*1, 16*25, 16*16, 16*45),
+		Rect:               image.Rect(16*1, 16*25, 16*16, 16*45),
+		textBoxFont:        uiFont,
+		textBoxFontMHeight: uiFontMHeight,
 	}
 	g.textBoxLog3 = &TextBox{
-		Rect: image.Rect(16*17, 16*25, 16*32, 16*45),
+		Rect:               image.Rect(16*17, 16*25, 16*32, 16*45),
+		textBoxFont:        uiFont,
+		textBoxFontMHeight: uiFontMHeight,
 	}
 	g.textBoxLog4 = &TextBox{
-		Rect: image.Rect(16*33, 16*25, 16*48, 16*45),
+		Rect:               image.Rect(16*33, 16*25, 16*48, 16*45),
+		textBoxFont:        uiFont,
+		textBoxFontMHeight: uiFontMHeight,
 	}
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	newFont, err := opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    12,
+		DPI:     72,
+		Hinting: font.HintingVertical,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	b, _, _ := newFont.GlyphBounds('M')
+	newFontMHeight := (b.Max.Y - b.Min.Y).Ceil()
 	g.textBoxLog5 = &TextBox{
-		Rect: image.Rect(16*39+8, 16*12, 16*48, 16*24),
+		Rect:               image.Rect(16*39+8, 16*12, 16*48, 16*24),
+		textBoxFont:        newFont,
+		textBoxFontMHeight: newFontMHeight,
 	}
 
 	g.slime = &Button{
@@ -999,7 +1030,7 @@ func GameMain() *Game {
 	// 	}
 	// 	g.textBoxLog.AppendLine(msg)
 	// })
-	g.textBoxLog5.AppendLineToFirst(intervalStringer(fmt.Sprintf(fmt.Sprintf("Auto Loaded %d items", len(g.items))), 12))
+	g.LogStringer(fmt.Sprintf("Auto Loaded %d items", len(g.items)))
 	return g
 }
 
