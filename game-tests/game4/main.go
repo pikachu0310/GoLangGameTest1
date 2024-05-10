@@ -879,11 +879,12 @@ func (g *Game) CombineItem() {
 	data2, err := ioutil.ReadFile("CombineLog.txt")
 	if err != nil {
 		fmt.Println(err)
-	}
-	data = append(data2, data...)
-	err = ioutil.WriteFile("CombineLog.txt", data, 0755)
-	if err != nil {
-		log.Fatal(err)
+	} else {
+		data = append(data2, data...)
+		err = ioutil.WriteFile("CombineLog.txt", data, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
